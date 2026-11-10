@@ -1,1 +1,1 @@
-# STONE-Family---Terminal
+# STONE-Family-Terminal
