@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>STONE FAMILY — Управление</title>
+<style>
+  /* === ПЕРЕМЕННЫЕ === */
+  :root {
+    --bg-dark: #0F1A26; --bg-panel: #1A2B3C; --bg-panel-2: #22384F;
+    --orange: #E64A19; --orange-light: #FF7043; --orange-soft: #FFCCBC;
+    --text: #FFFFFF; --text-muted: #A0B4C8;
+    --green: #4CAF50; --red: #E53935; --blue: #2196F3;
+    --input-bg: #FFCCBC; --input-text: #3E2723;
+    --r-gk: #FFD700; --r10: #FFD700; --r9: #FF9800; --r8: #2196F3;
+    --r7: #E91E63; --r6: #9C27B0; --r5: #673AB7; --r4: #FF9800;
+    --r3: #8BC34A; --r2: #795548;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg-dark); color: var(--text); min-height: 100vh; font-size: 14px; overflow-x: hidden; }
+  
+  /* === СПЛЭШ-ЭКРАН === */
+  .splash-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-dark); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 9999;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+  .splash-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .splash-logo {
+    width: 120px; height: 120px; background: var(--orange);
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    margin-bottom: 30px; animation: pulse 2s infinite ease-in-out;
+    box-shadow: 0 0 40px rgba(230, 74, 25, 0.4);
+  }
+  .splash-title {
+    font-size: 32px; letter-spacing: 4px; color: var(--text);
+    opacity: 0; animation: slideUp 1s forwards 0.5s;
+  }
+  .splash-title span { color: var(--orange-light); }
+  .splash-subtitle {
+    font-size: 16px; color: var(--text-muted); margin-top: 10px;
+    opacity: 0; animation: slideUp 1s forwards 1s;
+  }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* === ШАПКА И НАВИГАЦИЯ === */
+  header {
+    background: linear-gradient(135deg, var(--bg-panel), var(--bg-dark));
+    padding: 15px 20px; border-bottom: 3px solid var(--orange);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    position: relative; z-index: 100;
+  }
+  header h1 { font-size: 22px; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
+  header h1 span { color: var(--orange-light); }
+  .logo-icon { width: 28px; height: 28px; background: var(--orange); clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); display: inline-block; }
+  
+  /* Бургер-меню (по умолчанию скрыто на ПК) */
+  .burger-menu { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; padding: 5px; }
+  
+  nav {
+    display: flex; gap: 5px; padding: 10px 20px; background: var(--bg-panel);
+    flex-wrap: wrap; border-bottom: 1px solid var(--bg-panel-2); transition: all 0.3s;
+  }
+  nav button {
+    background: transparent; border: 2px solid transparent; color: var(--text-muted);
+    padding: 8px 15px; cursor: pointer; border-radius: 6px; font-size: 14px; font-weight: 600; transition: all 0.2s;
+  }
+  nav button:hover { color: var(--text); background: var(--bg-panel-2); }
+  nav button.active { color: var(--text); background: var(--orange); border-color: var(--orange-light); }
+
+  /* === ОСНОВНОЙ КОНТЕНТ === */
+  main { padding: 20px; max-width: 1600px; margin: 0 auto; }
+  .page { display: none; }
+  .page.active { display: block; animation: fade 0.3s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  /* === КОМПОНЕНТЫ === */
+  .card { background: var(--bg-panel); border-radius: 10px; padding: 20px; margin-bottom: 20px; border-left: 4px solid var(--orange); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+  .card h2 { font-size: 18px; color: var(--orange-light); margin-bottom: 15px; letter-spacing: 1px; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+  .grid-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+  .stat { background: var(--bg-panel-2); border-radius: 8px; padding: 15px; border-left: 3px solid var(--orange-light); }
+  .stat .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .stat .value { font-size: 22px; font-weight: 700; }
+  .stat.big .value { font-size: 26px; color: var(--orange-light); }
+  
+  /* Таблицы */
+  .table-wrap { overflow-x: auto; max-height: 60vh; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table th { background: var(--orange); color: var(--text); padding: 10px 8px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 10; }
+  table td { padding: 8px; border-bottom: 1px solid var(--bg-panel-2); vertical-align: middle; }
+  table tr:hover td { background: var(--bg-panel-2); }
+  
+  input, select { background: var(--input-bg); color: var(--input-text); border: none; padding: 8px 10px; border-radius: 4px; font-size: 14px; width: 100%; font-family: inherit; font-weight: 500; }
+  input:focus, select:focus { outline: 2px solid var(--orange-light); }
+  input[readonly] { background: var(--bg-panel-2); color: var(--text); cursor: default; }
+  input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--orange); }
+  
+  .btn { background: var(--orange); color: var(--text); border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s; letter-spacing: 0.5px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn:hover { background: var(--orange-light); }
+  .btn-danger { background: var(--red); } .btn-danger:hover { background: #F44336; }
+  .btn-blue { background: var(--blue); } .btn-blue:hover { background: #1E88E5; }
+  .btn-green { background: var(--green); } .btn-green:hover { background: #45a049; }
+  .btn-outline { background: transparent; border: 2px solid var(--orange); color: var(--orange-light); }
+  .btn-outline:hover { background: var(--orange); color: var(--text); }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
+  .money { color: var(--green); font-weight: 700; font-size: 15px; }
+  
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--orange); color: white; padding: 12px 20px; border-radius: 6px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .toast.show { opacity: 1; }
+  .empty { text-align: center; padding: 30px; color: var(--text-muted); font-style: italic; font-size: 14px; }
+  .row-actions button { background: transparent; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+  .row-actions button:hover { color: var(--orange-light); }
+  .divider { height: 1px; background: var(--bg-panel-2); margin: 15px 0; }
+  .help { font-size: 13px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+  /* === УЧАСТНИКИ === */
+  .status-block { margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid var(--bg-panel-2); }
+  .status-header { padding: 12px 15px; font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+  .status-header:hover { filter: brightness(1.1); }
+  .status-active { background: rgba(76, 175, 80, 0.2); border-left: 4px solid var(--green); }
+  .status-vacation { background: rgba(33, 150, 243, 0.2); border-left: 4px solid var(--blue); }
+  .status-twin { background: rgba(156, 39, 176, 0.2); border-left: 4px solid #9C27B0; }
+  .status-black { background: rgba(229, 57, 53, 0.2); border-left: 4px solid var(--red); }
+  .status-content { display: block; }
+  .status-content.collapsed { display: none; }
+  .rank-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+
+  /* Карточки для мобильной версии */
+  .mobile-card { background: var(--bg-panel-2); padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid var(--orange); }
+  .mobile-card .row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .mobile-card .row2 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; font-size: 12px; margin-bottom: 5px; }
+  .mobile-card .row3 { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--bg-panel); padding-top: 5px; margin-top: 5px; }
+
+  /* === РАБОЧАЯ НЕДЕЛЯ === */
+  .days-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 15px; }
+  .day-card { background: var(--bg-panel-2); border-radius: 8px; padding: 15px; border-top: 3px solid var(--orange); display: flex; flex-direction: column; }
+  .day-card h3 { font-size: 15px; margin-bottom: 10px; color: var(--orange-light); display: flex; justify-content: space-between; align-items: center; }
+  .day-card.metallurgy { border-top-color: #D84315; } .day-card.metallurgy h3 { color: #FF7043; }
+  .day-card.goods { border-top-color: #2196F3; } .day-card.goods h3 { color: #64B5F6; }
+  .day-card.atelier { border-top-color: #9C27B0; } .day-card.atelier h3 { color: #CE93D8; }
+  .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .form-row label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; }
+  .contract-status { font-size: 13px; font-weight: bold; padding: 6px 10px; border-radius: 4px; text-align: center; margin-bottom: 10px; }
+  .contract-closed { background: rgba(76, 175, 80, 0.2); color: #81C784; border: 1px solid #4CAF50; }
+  .contract-open { background: rgba(255, 152, 0, 0.2); color: #FFB74D; border: 1px solid #FF9800; }
+  .info-badge { background: var(--bg-panel); padding: 4px 8px; border-radius: 4px; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display: inline-block; }
+
+  /* === ЭКСПОРТ === */
+  .export-panel { background: var(--bg-panel-2); padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px dashed var(--orange); }
+  .export-panel h3 { font-size: 14px; color: var(--orange-light); margin-bottom: 10px; text-transform: uppercase; }
+  .export-preview { background: #000; color: #00FF00; font-family: 'Courier New', monospace; padding: 10px; border-radius: 4px; font-size: 13px; max-height: 120px; overflow-y: auto; margin-bottom: 10px; white-space: pre-wrap; }
+
+  /* === МОДАЛЬНОЕ ОКНО === */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .modal-content { background: var(--bg-panel); border-radius: 10px; padding: 25px; width: 90%; max-width: 500px; border-top: 4px solid var(--orange); box-shadow: 0 10px 25px rgba(0,0,0,0.5); transform: translateY(-20px); transition: transform 0.2s; max-height: 90vh; overflow-y: auto; }
+  .modal-overlay.show .modal-content { transform: translateY(0); }
+  .modal-content h2 { margin-bottom: 20px; color: var(--orange-light); font-size: 18px; text-transform: uppercase; }
+  .modal-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .modal-form label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* === АДАПТАЦИЯ === */
+  @media (max-width: 1024px) {
+    .days-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  }
+
+  @media (max-width: 768px) {
+    header { padding: 10px 15px; }
+    header h1 { font-size: 18px; }
+    .burger-menu { display: block; }
+    
+    nav {
+      position: absolute; top: 60px; left: 0; right: 0;
+      background: var(--bg-panel); flex-direction: column; padding: 10px;
+      border-bottom: 2px solid var(--orange); z-index: 99;
+      transform: translateY(-100%); opacity: 0; pointer-events: none;
+    }
+    nav.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    nav button { width: 100%; text-align: left; margin-bottom: 5px; }
+
+    main { padding: 10px; }
+    
+    /* Прячем таблицу участников, показываем карточки */
+    .desktop-table { display: none; }
+    .mobile-cards { display: block; }
+    
+    .days-grid { grid-template-columns: 1fr; }
+    .day-card { padding: 10px; }
+    
+    /* Увеличиваем шрифт в инпутах, чтобы не было зума на iOS */
+    input, select { font-size: 16px; padding: 10px; }
+    
+    .grid-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat .value { font-size: 18px; }
+    .stat.big .value { font-size: 20px; }
+  }
+
+  @media (min-width: 769px) {
+    .mobile-cards { display: none; }
+    .desktop-table { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<!-- СПЛЭШ-ЭКРАН -->
+<div class="splash-screen" id="splash-screen">
+  <div class="splash-logo"></div>
+  <div class="splash-title">STONE <span>FAMILY</span></div>
+  <div class="splash-subtitle">Добро пожаловать в систему управления</div>
+</div>
+
+<header>
+  <h1><span class="logo-icon"></span> STONE <span>FAMILY</span></h1>
+  <button class="burger-menu" onclick="toggleMenu()">☰</button>
+  <div style="font-size:14px; color:var(--text-muted); width:100%; text-align:right;">
+    Неделя: <strong id="header-week" style="color:var(--orange-light);">—</strong>
+  </div>
+</header>
+
+<nav id="main-nav">
+  <button data-page="dashboard" class="active">📊 Дашборд</button>
+  <button data-page="participants">👥 Участники</button>
+  <button data-page="week">📅 Рабочая неделя</button>
+  <button data-page="settings">⚙️ Настройки</button>
+  <button data-page="data">💾 Данные</button>
+</nav>
+
+<main>
+  <!-- ДАШБОРД -->
+  <section class="page active" id="page-dashboard">
+    <div class="card">
+      <h2>СВОДКА НЕДЕЛИ</h2>
+      <div class="grid-stats">
+        <div class="stat big"><div class="label">Общая прибыль</div><div class="value" id="d-profit">0</div></div>
+        <div class="stat big"><div class="label">Выплаты участникам</div><div class="value" id="d-fund">0</div></div>
+        <div class="stat big"><div class="label">Остаток в казну</div><div class="value" id="d-balance">0</div></div>
+        <div class="stat"><div class="label">Получателей</div><div class="value" id="d-recipients">0</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ВЕДОМОСТЬ ВЫПЛАТ</h2>
+      <div class="table-wrap desktop-table">
+        <table>
+          <thead><tr><th>Статик</th><th>Участник</th><th>Ранг</th><th>Итог к выплате</th></tr></thead>
+          <tbody id="payouts-body"><tr><td colspan="4" class="empty">Пока никто не получает премию</td></tr></tbody>
+        </table>
+      </div>
+      <!-- Мобильная ведомость -->
+      <div class="mobile-cards" id="payouts-mobile"></div>
+
+      <div class="export-panel">
+        <h3>Экспорт для выдачи премий</h3>
+        <div class="export-preview" id="export-preview">Загрузка...</div>
+        <div class="toolbar" style="margin:0;">
+          <button class="btn btn-green" onclick="copyExport()">📋 Скопировать</button>
+          <button class="btn btn-outline" onclick="downloadExport()">📥 Скачать .txt</button>
+        </div>
+        <p class="help">Первая строка — заголовок для Majestic. Участники без статика игнорируются.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- УЧАСТНИКИ -->
+  <section class="page" id="page-participants">
+    <div class="toolbar" style="margin-bottom:20px;">
+      <input type="text" id="search-participant" placeholder="Поиск по имени..." oninput="renderParticipants()" style="max-width:300px;">
+      <button class="btn" onclick="openAddModal()">+ Добавить участника</button>
+    </div>
+    <div id="participants-container"></div>
+  </section>
+
+  <!-- РАБОЧАЯ НЕДЕЛЯ -->
+  <section class="page" id="page-week">
+    <div class="card">
+      <h2>РАБОЧАЯ НЕДЕЛЯ</h2>
+      <div class="toolbar" style="margin-bottom:15px;">
+        <button class="btn btn-outline" onclick="addDirectionBlock('Металлургия')">+ Металлургия</button>
+        <button class="btn btn-outline" onclick="addDirectionBlock('Товары')">+ Товары</button>
+        <button class="btn btn-outline" onclick="addDirectionBlock('Ателье')">+ Ателье</button>
+      </div>
+      <p class="help">Контракт закрывается только при достижении нормы. Вводите количество для каждого участника.</p>
+    </div>
+    <div id="directions-container"></div>
+  </section>
+
+  <!-- НАСТРОЙКИ -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <h2>НАСТРОЙКИ НЕДЕЛИ</h2>
+      <div class="form-row">
+        <div><label>Начало недели</label><input type="date" id="s-start-date" oninput="saveSettings()"></div>
+        <div><label>Конец недели</label><input type="text" id="s-end-date" readonly></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>КОЭФФИЦИЕНТЫ РАНГОВ</h2>
+      <table>
+        <thead><tr><th>Ранг</th><th>Коэффициент</th><th>Правило</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>0</td><td>Ранг 1 и ниже — 0%</td></tr>
+          <tr><td>2</td><td>0.5</td><td>Ранг 2 — 50%</td></tr>
+          <tr><td>3</td><td>0.75</td><td>Ранг 3 — 75%</td></tr>
+          <tr><td>4+</td><td>1.0</td><td>Ранг 4 и выше — 100%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>ДОЛИ ПРИБЫЛИ В ФОНД ПРЕМИЙ</h2>
+      <div class="form-row">
+        <div><label>Металлургия</label><input type="number" step="0.01" id="s-metall" oninput="saveSettings()"></div>
+        <div><label>Товары</label><input type="number" step="0.01" id="s-goods" oninput="saveSettings()"></div>
+        <div><label>Ателье</label><input type="number" step="0.01" id="s-atelier" oninput="saveSettings()"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ДАННЫЕ -->
+  <section class="page" id="page-data">
+    <div class="card">
+      <h2>ЭКСПОРТ / ИМПОРТ / ОЧИСТКА</h2>
+      <div class="toolbar">
+        <button class="btn" onclick="exportData()">💾 Экспорт в JSON</button>
+        <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📂 Импорт из JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+        <button class="btn btn-blue" onclick="resetToDefaults()">🔄 Сбросить к заводскому</button>
+        <button class="btn btn-danger" onclick="newWeek()">🔄 Начать новую неделю</button>
+        <button class="btn btn-danger" onclick="clearAllData()">🗑 Очистить всё</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- МОДАЛКА -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal-content">
+    <h2>Новый участник</h2>
+    <div class="modal-form">
+      <div><label>Имя</label><input type="text" id="m-name" placeholder="Например: John Stone"></div>
+      <div><label>Статик (обязательно)</label><input type="text" id="m-static" placeholder="6 цифр"></div>
+      <div><label>Ранг</label><input type="number" id="m-rank" value="1" min="0" max="10"></div>
+      <div>
+        <label>Статус</label>
+        <select id="m-status" onchange="toggleReasonField()">
+          <option value="Активен">Активен</option><option value="Твинк">Твинк</option>
+          <option value="Отпуск">Отпуск</option><option value="ЧС">ЧС</option>
+        </select>
+      </div>
+      <div id="m-reason-wrap" style="display:none;"><label>Причина (для ЧС)</label><input type="text" id="m-reason" placeholder="Причина..."></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddModal()">Отмена</button>
+      <button class="btn" onclick="saveNewParticipant()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==========================================
+// КОНСТАНТЫ И ДЕФОЛТНЫЕ ДАННЫЕ
+// ==========================================
+const DEFAULT_BLACKLIST_REASONS = {
+  'Akira Moon': '', 'Hayden Merriwether': 'Участие в похищение ЗГВ и ГК', 'Mozart Merriwether': 'Участие в похищение ЗГВ и ГК',
+  'Lyonya Bizzy': 'Слив информации с сервера семьи', 'Magic Divergent': 'Похищение Глав Врача', 'Roland Verhoviy': 'Душнила',
+  'Ilysha Stone': 'Несоответствие моральным ценностям семьи', 'Calvin Stone': 'Слив личной информации', 'Apollo Verhovniy': 'Душнила',
+  'Damiil Hobbs': 'Несоответствие моральным ценностям семьи', 'Aisha Henson': 'Предательство семьи и союзных семей',
+  'Griff Grex': 'Введение в заблуждение руководства семьи', 'Artem Stone': 'Кража вещей в семье',
+  'Artemchik Moretti': 'Предательство союзной семьи', 'Modest Velasco': 'Предатель из Веласко',
+  'Ozzi Velasco': 'Предатель из Веласко', 'Santiago Velasco': 'Предатель из Веласко', 'Rober Velasco': 'Предатель из Веласко'
+};
+const BLACKLIST_STATICS = {
+  'Akira Moon': '210276', 'Hayden Merriwether': '249494', 'Mozart Merriwether': '331264', 'Lyonya Bizzy': '377510',
+  'Magic Divergent': '281716', 'Roland Verhoviy': '283462', 'Ilysha Stone': '385788', 'Calvin Stone': '436171',
+  'Apollo Verhovniy': '1538', 'Damiil Hobbs': '292056', 'Aisha Henson': '378375', 'Griff Grex': '419399',
+  'Artem Stone': '480038', 'Artemchik Moretti': '458590', 'Modest Velasco': '59114', 'Ozzi Velasco': '238023',
+  'Santiago Velasco': '433414', 'Rober Velasco': '502967'
+};
+const DEFAULT_PARTICIPANTS = [
+  { name: 'Rayan Stone', rank: 10, static: '376117', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Vitoha Stone', rank: 9, static: '398775', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Karoline Stone', rank: 9, static: '395875', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Lia Stone', rank: 9, static: '375248', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Moon Stone', rank: 8, static: '389959', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Evil Stone', rank: 8, static: '471438', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Hiro Stone', rank: 8, static: '77683', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Alexandra Stone', rank: 8, static: '390576', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Imlerith Stone', rank: 7, static: '335142', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Jonny Stone', rank: 7, static: '407067', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Maxim Stone', rank: 4, static: '359902', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Vladik Stone', rank: 4, static: '435525', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Alex Stone', rank: 3, static: '451505', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Goga Stone', rank: 3, static: '467821', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Willam Stone', rank: 3, static: '323956', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Arina Stone', rank: 3, static: '500488', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Stacy Stone', rank: 3, static: '499728', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Adele Stone', rank: 2, static: '424361', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Sebastian Stone', rank: 2, static: '424362', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Chris Stone', rank: 2, static: '504184', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Alyssa Stone', rank: 7, static: '417765', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Daniil Stone', rank: 3, static: '252718', status: 'Активен', bonus: 0, reason: '' },
+  { name: 'Ethan Stone', rank: 9, static: '2639', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Mi Stone', rank: 7, static: '462052', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Lola Stone', rank: 7, static: '378124', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Oleg Stone', rank: 7, static: '380439', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Alfred Stone', rank: 3, static: '80269', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Dionis Stone', rank: 3, static: '175701', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Anika Stone', rank: 3, static: '302635', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Tatsuki Stone', rank: 2, static: '360896', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Maksim Stone', rank: 3, static: '472341', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Daviid Stone', rank: 3, static: '393413', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Trevis Stone', rank: 3, static: '127356', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Rayman Stone', rank: 3, static: '276809', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Akemi Stone', rank: 3, static: '460528', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Vincentik Stone', rank: 3, static: '497604', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Ace Stone', rank: 9, static: '347204', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Dimon Stone', rank: 3, static: '334887', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Terra Stone', rank: 3, static: '339615', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Redji Stone', rank: 3, static: '325035', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Griff Stone', rank: 7, static: '384285', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Artem Snow', rank: 3, static: '480038', status: 'Отпуск', bonus: 0, reason: '' },
+  { name: 'Victor Stone', rank: 8, static: '340144', status: 'Твинк', bonus: 0, reason: '' },
+  { name: 'Hayle Stone', rank: 8, static: '398991', status: 'Твинк', bonus: 0, reason: '' },
+  { name: 'Kuro Stone', rank: 3, static: '91989', status: 'Твинк', bonus: 0, reason: '' },
+  { name: 'Kitty Stone', rank: 3, static: '386666', status: 'Твинк', bonus: 0, reason: '' },
+  { name: 'Kurt Goldenside', rank: 3, static: '70410', status: 'Твинк', bonus: 0, reason: '' },
+  { name: 'Yuryk Goldenside', rank: 3, static: '154805', status: 'Твинк', bonus: 0, reason: '' }
+];
+Object.keys(DEFAULT_BLACKLIST_REASONS).forEach(name => {
+  DEFAULT_PARTICIPANTS.push({ name, rank: 0, static: BLACKLIST_STATICS[name] || '', status: 'ЧС', bonus: 0, reason: DEFAULT_BLACKLIST_REASONS[name] });
+});
+
+const CONTRACTS = {
+  'Металлургия': { openCost: 16000, types: {
+    'Олово': { norm: 65, pay: 237200, maxPerPerson: 13 }, 'Золото': { norm: 25, pay: 265000, maxPerPerson: 5 },
+    'Железо': { norm: 580, pay: 158000, maxPerPerson: 116 }, 'Медь': { norm: 170, pay: 217500, maxPerPerson: 34 },
+    'Серебро': { norm: 350, pay: 197700, maxPerPerson: 70 }
+  }},
+  'Товары': { openCost: 16000, totalNorm: 160, parts: 5, partAmount: 32, pay: 213000, flightBonus: 40000 },
+  'Ателье': { openCost: 10000, totalNorm: 105, payPerItem: 1493.33, totalPay: 196000 }
+};
+
+// ==========================================
+// СОСТОЯНИЕ И УТИЛИТЫ
+// ==========================================
+const STORAGE_KEY = 'stone_family_v9';
+let state = {
+  settings: { startDate: new Date().toISOString().split('T')[0], shares: { 'Металлургия': 0.8, 'Товары': 0.8, 'Ателье': 0.8 } },
+  participants: [], directions: [],
+  collapsed: { 'Активен': false, 'Отпуск': false, 'Твинк': false, 'ЧС': false }
+};
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      state = JSON.parse(raw);
+      if (!state.collapsed) state.collapsed = { 'Активен': false, 'Отпуск': false, 'Твинк': false, 'ЧС': false };
+    } else {
+      state.participants = JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS));
+      save();
+    }
+  } catch (e) { console.error(e); }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function getRankColor(rank) {
+  const r = Number(rank);
+  if (r >= 10) return 'var(--r-gk)'; if (r === 9) return 'var(--r9)'; if (r === 8) return 'var(--r8)';
+  if (r === 7) return 'var(--r7)'; if (r === 6) return 'var(--r6)'; if (r === 5) return 'var(--r5)';
+  if (r === 4) return 'var(--r4)'; if (r === 3) return 'var(--r3)'; if (r === 2) return 'var(--r2)';
+  return '#888';
+}
+function rankCoeff(rank) {
+  if (rank <= 1) return 0; if (rank === 2) return 0.5; if (rank === 3) return 0.75; return 1;
+}
+function sortParticipants(a, b) {
+  const rA = Number(a.rank) || 0, rB = Number(b.rank) || 0;
+  if (rA !== rB) return rB - rA;
+  return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase());
+}
+
+// ==========================================
+// ЛОГИКА КОНТРАКТОВ И РАСЧЁТОВ
+// ==========================================
+function checkContract(dirType, day, participants) {
+  const totalAmount = participants.reduce((s, e) => s + Number(e.amount), 0);
+  const config = CONTRACTS[dirType];
+  if (!config) return { totalAmount, isClosed: false, dayFund: 0, norm: 0, infoText: '' };
+
+  let isClosed = false, dayFund = 0, norm = 0, infoText = '';
+
+  if (dirType === 'Металлургия') {
+    const m = config.types[day.metalType] || config.types['Олово'];
+    norm = m.norm; isClosed = totalAmount >= norm;
+    dayFund = isClosed ? m.pay * state.settings.shares[dirType] : 0;
+    infoText = `Норма: ${norm}. Макс: ${m.maxPerPerson}. Выплата: ${m.pay} (Фонд: ${dayFund})`;
+  } else if (dirType === 'Товары') {
+    norm = config.totalNorm; isClosed = totalAmount >= norm;
+    dayFund = isClosed ? config.pay * state.settings.shares[dirType] : 0;
+    infoText = `Норма: ${norm} (${config.parts} частей по ${config.partAmount}). Выплата: ${config.pay} (Фонд: ${dayFund})`;
+  } else if (dirType === 'Ателье') {
+    norm = config.totalNorm; isClosed = totalAmount >= norm;
+    dayFund = isClosed ? config.totalPay * state.settings.shares[dirType] : 0;
+    infoText = `Норма: ${norm} шт. Выплата: ${config.totalPay} (Фонд: ${dayFund})`;
+  }
+  return { totalAmount, isClosed, dayFund, norm, infoText };
+}
+
+function calcParticipantEarnings(p) {
+  const earnings = { 'Металлургия': 0, 'Товары': 0, 'Ателье': 0 };
+  let extraReturn = 0, extraFlight = 0;
+
+  state.directions.forEach(dir => {
+    const dirShare = state.settings.shares[dir.type] || 0;
+    dir.days.forEach(day => {
+      if (day.responsible === p.name && Number(day.costs) > 0) extraReturn += Number(day.costs);
+      
+      const dirParticipants = dir.participants.filter(e => e.dayId === day.id);
+      const { totalAmount, isClosed, dayFund } = checkContract(dir.type, day, dirParticipants);
+
+      if (isClosed && dayFund > 0) {
+        dirParticipants.filter(e => e.name === p.name).forEach(e => {
+          earnings[dir.type] += dayFund * (Number(e.amount) / totalAmount);
+        });
+      }
+      if (dir.type === 'Товары') {
+        const flightParticipants = dirParticipants.filter(e => e.flight);
+        if (flightParticipants.length > 0 && flightParticipants.some(e => e.name === p.name)) {
+          extraFlight += CONTRACTS['Товары'].flightBonus / flightParticipants.length;
+        }
+      }
+    });
+  });
+
+  const total = Object.values(earnings).reduce((a, b) => a + b, 0);
+  const coeff = rankCoeff(Number(p.rank) || 0);
+  const base = total * coeff;
+  const bonus = Number(p.bonus) || 0;
+  const final = base + bonus + extraReturn + extraFlight;
+  
+  return { ...earnings, total, coeff, base, bonus, extraReturn, extraFlight, final };
+}
+
+function getPayouts() {
+  return state.participants
+    .map(p => ({ ...p, calc: calcParticipantEarnings(p) }))
+    .filter(p => p.calc.final > 0)
+    .sort(sortParticipants);
+}
+
+function totalPremiumFund() { return state.participants.reduce((sum, p) => sum + calcParticipantEarnings(p).final, 0); }
+function totalProfit() {
+  let sum = 0;
+  state.directions.forEach(d => {
+    d.days.forEach(day => {
+      const participants = d.participants.filter(e => e.dayId === day.id);
+      const { isClosed } = checkContract(d.type, day, participants);
+      if (isClosed) {
+        if (d.type === 'Металлургия') sum += CONTRACTS[d.type].types[day.metalType]?.pay || 0;
+        else sum += CONTRACTS[d.type].pay || CONTRACTS[d.type].totalPay || 0;
+      }
+    });
+  });
+  return sum;
+}
+
+// ==========================================
+// ЭКСПОРТ ДЛЯ ВЫДАЧИ (Majestic)
+// ==========================================
+function generateExportText() {
+  const payouts = getPayouts();
+  const start = new Date(state.settings.startDate);
+  const end = new Date(start); end.setDate(end.getDate() + 6);
+  const f = d => `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+  const dateStr = `${f(start)} по ${f(end)}`;
+  
+  let lines = ['staticId;amount;comment'];
+  
+  payouts.forEach(p => {
+    if (p.static && p.static.trim() !== '') {
+      lines.push(`${p.static.trim()};${Math.round(p.calc.final)};Премия ${dateStr}`);
+    }
+  });
+  return lines.join('\n');
+}
+
+function copyExport() {
+  const text = generateExportText();
+  if (text.split('\n').length <= 1) { toast('Нет данных для выдачи!'); return; }
+  navigator.clipboard.writeText(text).then(() => toast('Скопировано в буфер!'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta); toast('Скопировано!');
+    });
+}
+function downloadExport() {
+  const text = generateExportText();
+  if (text.split('\n').length <= 1) { toast('Нет данных для выдачи!'); return; }
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `premiums_${state.settings.startDate}.txt`; a.click();
+  URL.revokeObjectURL(url); toast('Файл скачан');
+}
+
+// ==========================================
+// РЕНДЕР: ДАШБОРД
+// ==========================================
+function renderDashboard() {
+  const profit = totalProfit(), fund = totalPremiumFund(), payouts = getPayouts();
+  document.getElementById('d-profit').textContent = profit.toFixed(2);
+  document.getElementById('d-fund').textContent = fund.toFixed(2);
+  document.getElementById('d-balance').textContent = (profit - fund).toFixed(2);
+  document.getElementById('d-recipients').textContent = payouts.length;
+  
+  // ПК Таблица
+  const tbody = document.getElementById('payouts-body');
+  tbody.innerHTML = payouts.length === 0 ? '<tr><td colspan="4" class="empty">Пока никто не получает премию</td></tr>' :
+    payouts.map(p => {
+      const hasStatic = p.static && p.static.trim() !== '';
+      return `<tr>
+        <td style="${!hasStatic ? 'color:var(--red);font-weight:bold;' : ''}">${hasStatic ? p.static : 'НЕТ СТАТИКА!'}</td>
+        <td><span class="rank-dot" style="background:${getRankColor(p.rank)}"></span><strong>${p.name}</strong></td>
+        <td>${p.rank}</td><td class="money">${p.calc.final.toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+
+  // Мобильные карточки
+  const mobileBody = document.getElementById('payouts-mobile');
+  mobileBody.innerHTML = payouts.length === 0 ? '<div class="empty">Пока никто не получает премию</div>' :
+    payouts.map(p => {
+      const hasStatic = p.static && p.static.trim() !== '';
+      return `
+        <div class="mobile-card">
+          <div class="row1">
+            <strong><span class="rank-dot" style="background:${getRankColor(p.rank)}"></span>${p.name}</strong>
+            <span class="money">${p.calc.final.toFixed(0)}</span>
+          </div>
+          <div class="row2">
+            <span>Ранг: ${p.rank}</span>
+            <span style="${!hasStatic ? 'color:var(--red);font-weight:bold;' : ''}">${hasStatic ? 'Ст: ' + p.static : 'НЕТ СТАТИКА!'}</span>
+          </div>
+        </div>`;
+    }).join('');
+  
+  document.getElementById('export-preview').textContent = generateExportText();
+}
+
+// ==========================================
+// РЕНДЕР: УЧАСТНИКИ
+// ==========================================
+function renderParticipants() {
+  const search = (document.getElementById('search-participant')?.value || '').toLowerCase();
+  const container = document.getElementById('participants-container');
+  if (!container) return;
+
+  const statuses = [
+    { key: 'Активен', label: 'АКТИВЕН', class: 'status-active' },
+    { key: 'Твинк', label: 'ТВИНК', class: 'status-twin' },
+    { key: 'Отпуск', label: 'ОТПУСК', class: 'status-vacation' },
+    { key: 'ЧС', label: 'ЧС', class: 'status-black' }
+  ];
+
+  container.innerHTML = statuses.map(st => {
+    let filtered = state.participants.filter(p => p.status === st.key && (!search || (p.name || '').toLowerCase().includes(search)));
+    if (st.key !== 'ЧС') filtered.sort(sortParticipants);
+    else filtered.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+    if (filtered.length === 0) return '';
+
+    const isCollapsed = state.collapsed[st.key], isSimple = (st.key === 'Отпуск'), isBlack = (st.key === 'ЧС');
+
+    return `
+      <div class="status-block">
+        <div class="status-header ${st.class}" onclick="toggleStatus('${st.key}')">
+          <span>${st.label} <span style="font-size:14px; opacity:0.7; margin-left:5px;">(${filtered.length})</span></span>
+          <span>${isCollapsed ? '▼' : '▲'}</span>
+        </div>
+        <div class="status-content ${isCollapsed ? 'collapsed' : ''}">
+          
+          <!-- ПК Таблица -->
+          <div class="table-wrap desktop-table">
+            <table style="margin:0;">
+              <thead>
+                <tr>
+                  <th>Имя</th>${!isBlack ? '<th>Ранг</th>' : ''}<th>Статик</th>${isBlack ? '<th>Причина</th>' : ''}<th>Статус</th>
+                  ${!isSimple && !isBlack ? '<th>Металл.</th><th>Товары</th><th>Ателье</th><th>Всего</th><th>Коэф.</th><th>Базовая</th><th>Надбавка</th><th>Итог</th>' : ''}
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map(p => {
+                  const c = calcParticipantEarnings(p), idx = state.participants.indexOf(p);
+                  return `
+                    <tr>
+                      <td>${!isBlack ? `<span class="rank-dot" style="background:${getRankColor(p.rank)}"></span>` : ''}<input value="${p.name || ''}" onchange="updateParticipant(${idx}, 'name', this.value)" style="width:140px;"></td>
+                      ${!isBlack ? `<td><input type="number" value="${p.rank || 1}" onchange="updateParticipant(${idx}, 'rank', this.value)" style="width:60px;"></td>` : ''}
+                      <td><input value="${p.static || ''}" onchange="updateParticipant(${idx}, 'static', this.value)" style="width:100px;" placeholder="Статик..."></td>
+                      ${isBlack ? `<td><input value="${p.reason || ''}" onchange="updateParticipant(${idx}, 'reason', this.value)" style="width:200px;" placeholder="Причина..."></td>` : ''}
+                      <td><select onchange="updateParticipant(${idx}, 'status', this.value)" style="width:110px;">${['Активен','Отпуск','Твинк','ЧС'].map(s => `<option ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></td>
+                      ${!isSimple && !isBlack ? `
+                        <td>${c['Металлургия'].toFixed(0)}</td><td>${c['Товары'].toFixed(0)}</td><td>${c['Ателье'].toFixed(0)}</td>
+                        <td>${c.total.toFixed(0)}</td><td>${c.coeff}</td><td>${c.base.toFixed(0)}</td>
+                        <td><input type="number" value="${p.bonus || 0}" onchange="updateParticipant(${idx}, 'bonus', this.value)" style="width:80px;"></td>
+                        <td class="money">${c.final.toFixed(0)}</td>
+                      ` : ''}
+                      <td class="row-actions"><button onclick="removeParticipant(${idx})">✕</button></td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Мобильные Карточки -->
+          <div class="mobile-cards">
+            ${filtered.map(p => {
+              const c = calcParticipantEarnings(p), idx = state.participants.indexOf(p);
+              return `
+                <div class="mobile-card">
+                  <div class="row1">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                      ${!isBlack ? `<span class="rank-dot" style="background:${getRankColor(p.rank)}"></span>` : ''}
+                      <input value="${p.name || ''}" onchange="updateParticipant(${idx}, 'name', this.value)" style="width:120px; font-size:14px;">
+                    </div>
+                    <button class="btn btn-danger" style="padding:4px 8px; min-height:auto; font-size:12px;" onclick="removeParticipant(${idx})">✕</button>
+                  </div>
+                  
+                  <div class="row2">
+                    ${!isBlack ? `<div><label style="font-size:10px;color:var(--text-muted);">Ранг</label><input type="number" value="${p.rank || 1}" onchange="updateParticipant(${idx}, 'rank', this.value)" style="font-size:14px;"></div>` : ''}
+                    <div><label style="font-size:10px;color:var(--text-muted);">Статик</label><input value="${p.static || ''}" onchange="updateParticipant(${idx}, 'static', this.value)" placeholder="Статик..."></div>
+                    <div><label style="font-size:10px;color:var(--text-muted);">Статус</label><select onchange="updateParticipant(${idx}, 'status', this.value)">${['Активен','Отпуск','Твинк','ЧС'].map(s => `<option ${p.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+                  </div>
+
+                  ${isBlack ? `<div style="margin-top:5px;"><label style="font-size:10px;color:var(--text-muted);">Причина</label><input value="${p.reason || ''}" onchange="updateParticipant(${idx}, 'reason', this.value)" placeholder="Причина..."></div>` : ''}
+
+                  ${!isSimple && !isBlack ? `
+                  <div style="font-size:12px; margin-top:5px; color:var(--text-muted); display:grid; grid-template-columns:1fr 1fr; gap:5px;">
+                    <span>Металл: <b style="color:var(--text);">${c['Металлургия'].toFixed(0)}</b></span>
+                    <span>Товары: <b style="color:var(--text);">${c['Товары'].toFixed(0)}</b></span>
+                    <span>Ателье: <b style="color:var(--text);">${c['Ателье'].toFixed(0)}</b></span>
+                    <span>Коэф: <b style="color:var(--text);">${c.coeff}</b></span>
+                  </div>
+                  <div class="row3">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                      <label style="font-size:10px;color:var(--text-muted);">Надбавка</label>
+                      <input type="number" value="${p.bonus || 0}" onchange="updateParticipant(${idx}, 'bonus', this.value)" style="width:80px; font-size:14px;">
+                    </div>
+                    <span class="money">${c.final.toFixed(0)}</span>
+                  </div>
+                  ` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==========================================
+// РЕНДЕР: РАБОЧАЯ НЕДЕЛЯ
+// ==========================================
+function renderDirections() {
+  const container = document.getElementById('directions-container');
+  if (!container) return;
+  const types = [
+    { key: 'Металлургия', icon: '⛏️', cls: 'metallurgy' },
+    { key: 'Товары', icon: '📦', cls: 'goods' },
+    { key: 'Ателье', icon: '✂️', cls: 'atelier' }
+  ];
+  const activeParticipants = state.participants.filter(p => p.status === 'Активен').sort(sortParticipants);
+  
+  container.innerHTML = types.map(t => {
+    const dir = state.directions.find(d => d.type === t.key);
+    if (!dir) return `<div class="card ${t.cls}"><h2>${t.icon} ${t.key}</h2><p class="empty">Не добавлено</p></div>`;
+    const dirIdx = state.directions.indexOf(dir), config = CONTRACTS[t.key];
+    
+    return `
+      <div class="card">
+        <div class="flex-between" style="margin-bottom:15px;">
+          <h2 style="margin:0; color:var(--text);">${t.icon} ${t.key}</h2>
+          <button class="btn btn-danger" onclick="removeDirection(${dirIdx})">Удалить</button>
+        </div>
+        <div class="days-grid">
+          ${dir.days.map((d, dayIdx) => {
+            const participants = dir.participants.filter(e => e.dayId === d.id);
+            const { totalAmount, isClosed, infoText, norm } = checkContract(t.key, d, participants);
+            
+            return `
+              <div class="day-card ${t.cls}">
+                <h3>${d.name} <span>${d.date}</span></h3>
+                <div class="info-badge">${infoText}</div>
+                <div class="form-row" style="grid-template-columns:1fr 1fr;">
+                  <div><label>Ответственный</label><select onchange="updateDay(${dirIdx}, ${dayIdx}, 'responsible', this.value)"><option value="">—</option>${activeParticipants.map(p => `<option ${d.responsible===p.name?'selected':''}>${p.name}</option>`).join('')}</select></div>
+                  <div><label>Затраты (возврат)</label><input type="number" value="${d.costs || 0}" onchange="updateDay(${dirIdx}, ${dayIdx}, 'costs', this.value)"></div>
+                </div>
+                ${t.key === 'Металлургия' ? `<div class="form-row" style="grid-template-columns:1fr;"><div><label>Тип металла</label><select onchange="updateDay(${dirIdx}, ${dayIdx}, 'metalType', this.value)">${Object.keys(config.types).map(m => `<option ${d.metalType===m?'selected':''}>${m}</option>`).join('')}</select></div></div>` : ''}
+                <div class="contract-status ${isClosed ? 'contract-closed' : 'contract-open'}">${isClosed ? '✅ Контракт закрыт' : '⏳ Не закрыт (сдано: ' + totalAmount + ' из ' + norm + ')'}</div>
+                <div class="divider" style="margin:10px 0;"></div>
+                <div style="font-size:13px; color:var(--text-muted); margin-bottom:5px;">Участники дня:</div>
+                <button class="btn btn-outline" style="padding:4px 8px; font-size:12px; margin-bottom:8px; min-height:auto;" onclick="addContribution(${dirIdx}, '${d.id}')">+ Добавить</button>
+                <div style="max-height:200px; overflow-y:auto;">
+                  <table>
+                    <thead><tr><th>Имя</th><th>Кол-во</th>${t.key === 'Товары' ? '<th title="Грузил самолёт">✈️</th>' : ''}<th></th></tr></thead>
+                    <tbody>
+                      ${participants.map(e => {
+                        const ei = dir.participants.indexOf(e);
+                        return `
+                          <tr>
+                            <td style="padding:2px;"><select onchange="updateContribution(${dirIdx}, ${ei}, 'name', this.value)" style="font-size:13px;"><option value="">—</option>${activeParticipants.map(p => `<option ${e.name===p.name?'selected':''}>${p.name}</option>`).join('')}</select></td>
+                            <td style="padding:2px; width:80px;"><input type="number" value="${e.amount || 0}" onchange="updateContribution(${dirIdx}, ${ei}, 'amount', this.value)" style="font-size:13px;"></td>
+                            ${t.key === 'Товары' ? `<td style="padding:2px; width:40px; text-align:center;"><input type="checkbox" title="Грузил самолёт" ${e.flight ? 'checked' : ''} onchange="updateContribution(${dirIdx}, ${ei}, 'flight', this.checked)"></td>` : ''}
+                            <td style="padding:2px; width:30px;" class="row-actions"><button onclick="removeContribution(${dirIdx}, ${ei})" style="font-size:14px;">✕</button></td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==========================================
+// ОБРАБОТЧИКИ СОБЫТИЙ И CRUD
+// ==========================================
+function toggleStatus(key) { state.collapsed[key] = !state.collapsed[key]; save(); renderParticipants(); }
+function openAddModal() {
+  document.getElementById('m-name').value = ''; document.getElementById('m-static').value = '';
+  document.getElementById('m-rank').value = 1; document.getElementById('m-status').value = 'Активен';
+  document.getElementById('m-reason').value = ''; toggleReasonField();
+  document.getElementById('add-modal').classList.add('show');
+}
+function closeAddModal() { document.getElementById('add-modal').classList.remove('show'); }
+function toggleReasonField() { document.getElementById('m-reason-wrap').style.display = document.getElementById('m-status').value === 'ЧС' ? 'block' : 'none'; }
+function saveNewParticipant() {
+  const name = document.getElementById('m-name').value.trim();
+  const staticId = document.getElementById('m-static').value.trim();
+  if (!name) { toast('Введите имя!'); return; }
+  if (!staticId) { toast('Статик обязателен!'); return; }
+  state.participants.push({
+    name, static: staticId, rank: Number(document.getElementById('m-rank').value) || 0,
+    status: document.getElementById('m-status').value, reason: document.getElementById('m-reason').value.trim(), bonus: 0
+  });
+  save(); closeAddModal(); refreshAll(); toast('Участник добавлен');
+}
+function updateParticipant(idx, field, value) {
+  if (field === 'rank' || field === 'bonus') value = Number(value) || 0;
+  state.participants[idx][field] = value;
+  save(); refreshAll();
+}
+function removeParticipant(idx) {
+  if (!confirm('Удалить?')) return;
+  state.participants.splice(idx, 1); save(); refreshAll();
+}
+
+function addDirectionBlock(type) {
+  if (state.directions.some(d => d.type === type)) { toast('Это направление уже добавлено!'); return; }
+  const dir = { id: Date.now(), type, days: [], participants: [] };
+  const dayNames = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+  dir.days = dayNames.map((n, i) => {
+    const d = new Date(state.settings.startDate); d.setDate(d.getDate() + i);
+    return { id: dir.id + '-' + i, name: n, date: d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'}), responsible: '', costs: CONTRACTS[type]?.openCost || 0, metalType: 'Олово' };
+  });
+  state.directions.push(dir); save(); renderDirections();
+}
+function removeDirection(di) { if (!confirm('Удалить направление?')) return; state.directions.splice(di, 1); save(); refreshAll(); }
+function updateDay(di, dayIdx, field, value) {
+  if (field === 'costs') value = Number(value) || 0;
+  state.directions[di].days[dayIdx][field] = value; save(); refreshAll();
+}
+function addContribution(di, dayId) { state.directions[di].participants.push({ dayId, name: '', amount: 0, flight: false }); save(); renderDirections(); }
+function updateContribution(di, ei, field, value) {
+  if (field === 'amount') value = Number(value) || 0;
+  state.directions[di].participants[ei][field] = value; save(); refreshAll();
+}
+function removeContribution(di, ei) { state.directions[di].participants.splice(ei, 1); save(); refreshAll(); }
+
+// ==========================================
+// НАСТРОЙКИ И ДАННЫЕ
+// ==========================================
+function renderSettings() {
+  document.getElementById('s-start-date').value = state.settings.startDate;
+  const end = new Date(state.settings.startDate); end.setDate(end.getDate() + 6);
+  document.getElementById('s-end-date').value = end.toLocaleDateString('ru-RU');
+  document.getElementById('s-metall').value = state.settings.shares['Металлургия'];
+  document.getElementById('s-goods').value = state.settings.shares['Товары'];
+  document.getElementById('s-atelier').value = state.settings.shares['Ателье'];
+  document.getElementById('header-week').textContent = state.settings.startDate;
+}
+function saveSettings() {
+  state.settings.startDate = document.getElementById('s-start-date').value;
+  state.settings.shares['Металлургия'] = Number(document.getElementById('s-metall').value) || 0;
+  state.settings.shares['Товары'] = Number(document.getElementById('s-goods').value) || 0;
+  state.settings.shares['Ателье'] = Number(document.getElementById('s-atelier').value) || 0;
+  save(); refreshAll();
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `stone_family_${state.settings.startDate}.json`; a.click();
+  URL.revokeObjectURL(url); toast('Экспортировано');
+}
+function importData(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try { const data = JSON.parse(e.target.result); if (confirm('Заменить текущие данные?')) { state = data; save(); refreshAll(); toast('Импортировано'); } }
+    catch (err) { toast('Ошибка файла'); }
+  };
+  reader.readAsText(file);
+}
+function resetToDefaults() {
+  if (!confirm('Сбросить к заводскому списку?')) return;
+  state.participants = JSON.parse(JSON.stringify(DEFAULT_PARTICIPANTS)); save(); refreshAll(); toast('Список сброшен');
+}
+function clearAllData() {
+  if (!confirm('Удалить ВСЁ?')) return;
+  localStorage.removeItem(STORAGE_KEY); location.reload();
+}
+function newWeek() {
+  if (!confirm('Начать новую неделю?')) return;
+  state.directions.forEach(d => {
+    d.days.forEach(day => { day.responsible = ''; day.costs = CONTRACTS[d.type]?.openCost || 0; });
+    d.participants = [];
+  });
+  state.participants.forEach(p => p.bonus = 0);
+  const nextMonday = new Date(state.settings.startDate); nextMonday.setDate(nextMonday.getDate() + 7);
+  state.settings.startDate = nextMonday.toISOString().split('T')[0];
+  save(); refreshAll(); toast('Новая неделя начата');
+}
+
+// ==========================================
+// ИНИЦИАЛИЗАЦИЯ И НАВИГАЦИЯ
+// ==========================================
+function refreshAll() { renderDashboard(); renderParticipants(); renderDirections(); renderSettings(); }
+
+function toggleMenu() {
+  document.getElementById('main-nav').classList.toggle('open');
+}
+
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    document.getElementById('main-nav').classList.remove('open'); // Закрываем меню после клика
+    refreshAll();
+  });
+});
+
+// Логика сплэш-экрана (только при первом открытии вкладки)
+if (!sessionStorage.getItem('splashShown')) {
+  sessionStorage.setItem('splashShown', 'true');
+  setTimeout(() => {
+    document.getElementById('splash-screen').classList.add('hidden');
+  }, 2800);
+} else {
+  document.getElementById('splash-screen').style.display = 'none';
+}
+
+load();
+refreshAll();
+</script>
+</body>
+</html>
